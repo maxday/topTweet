@@ -24,7 +24,6 @@ var client = new Twitter({
 });
 
 
-app.use('/static', express.static('public'));
 
 var bodyParser = require('body-parser');
 app.use(bodyParser.json({limit: "50mb"}));
