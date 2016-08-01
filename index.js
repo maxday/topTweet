@@ -29,8 +29,11 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json({limit: "50mb"}));
 app.use(bodyParser.urlencoded({limit: "50mb", extended: true, parameterLimit:50000}));
 
+app.get('/', function(request, response) {
+  response.send({success : true});
+});
 
-app.get('/:max_id_str?', function(request, response) {
+app.get('/go/:max_id_str?', function(request, response) {
   var maxId = request.params.max_id_str;
   var params = {
     q: '%23js%20OR%20%23javascript',
@@ -76,7 +79,7 @@ app.get('/:max_id_str?', function(request, response) {
       .then(function(data) {
         console.log("OK");
         sleep.sleep(6);
-        response.redirect("/" + max_id_str);
+        response.redirect("/go" + max_id_str);
       })
       .catch(function(error) {
         console.log("ERROR:", error);

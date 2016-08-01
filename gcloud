@@ -11,5 +11,13 @@ sudo su -
 sudo -i -u postgres
 psql
 create user maxd with password 'maxd';
-create database topTweets;
-GRANT ALL PRIVILEGES ON DATABASE topTweets to maxd;
+create database toptweets;
+
+
+\connect toptweets
+
+GRANT ALL PRIVILEGES ON DATABASE toptweets to maxd;
+ALTER TABLE twitter_user OWNER TO maxd;
+ALTER TABLE user_pk OWNER TO maxd;
+
+execute sql
