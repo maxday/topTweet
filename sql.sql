@@ -1,3 +1,7 @@
+TRUNCATE TABLE twitter_user;
+TRUNCATE TABLE twitter_hashtag;
+TRUNCATE TABLE twitter_mention;
+
 DROP TABLE twitter_user;
 DROP TABLE twitter_hashtag;
 DROP TABLE twitter_mention;
@@ -28,6 +32,13 @@ CREATE TABLE "twitter_mention" (
    PRIMARY KEY ("id", "mention")
 ) ;
 
+CREATE TABLE "twitter_url" (
+  "id" BIGINT,
+  "url" varchar(255),
+  "created_at" varchar(255) NOT NULL,
+   PRIMARY KEY ("id", "url")
+) ;
+
 
 CREATE OR REPLACE FUNCTION insertOrDetectDupliate(BIGINT, varchar, integer, integer, integer, integer, varchar, varchar)
 RETURNS integer AS $isPresent$
@@ -48,9 +59,9 @@ RETURNS integer AS $isPresent$
 declare
 	isPresent integer;
 BEGIN
-   SELECT count(*) into isPresent FROM twitter_hashtag WHERE id = $1 AND hashtag = $2;
+   SELECT count(*) into isPresent FROM twitter_hashtag WHERE id = $1 AND hashtag = lower($2);
    IF isPresent = 0 THEN
-    INSERT INTO twitter_hashtag (id, hashtag, created_at) VALUES ($1, $2, $3);
+    INSERT INTO twitter_hashtag (id, hashtag, created_at) VALUES ($1, lower($2), $3);
 END IF;
    RETURN isPresent;
 END;
@@ -61,9 +72,22 @@ RETURNS integer AS $isPresent$
 declare
 	isPresent integer;
 BEGIN
-   SELECT count(*) into isPresent FROM twitter_mention WHERE id = $1 AND mention = $2;
+   SELECT count(*) into isPresent FROM twitter_mention WHERE id = $1 AND mention = lower($2);
    IF isPresent = 0 THEN
-    INSERT INTO twitter_hashtag (id, mention, created_at) VALUES ($1, $2, $3);
+    INSERT INTO twitter_mention (id, mention, created_at) VALUES ($1, lower($2), $3);
+END IF;
+   RETURN isPresent;
+END;
+$isPresent$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION insertUrlNoDuplicate(BIGINT, varchar, varchar)
+RETURNS integer AS $isPresent$
+declare
+	isPresent integer;
+BEGIN
+   SELECT count(*) into isPresent FROM twitter_url WHERE id = $1 AND url = lower($2);
+   IF isPresent = 0 THEN
+    INSERT INTO twitter_url (id, url, created_at) VALUES ($1, lower($2), $3);
 END IF;
    RETURN isPresent;
 END;

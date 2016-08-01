@@ -84,6 +84,23 @@ app.get('/go/:max_id_str?', function(request, response) {
             )
           }
 
+          var urlLength = tweets.statuses[i].entities.urls.length;
+          for(var h=0; h<urlLength; ++h) {
+            var url = tweets.statuses[i].entities.urls[h].expanded_url;
+            if(!url) {
+              url = tweets.statuses[i].entities.urls[h].url;
+            }
+
+            dbQueries.push(
+              this.one('SELECT insertUrlNoDuplicate($1, $2, $3)',
+              [
+                tweets.statuses[i].id,
+                url,
+                tweets.statuses[i].created_at
+              ])
+            )
+          }
+
           var userMentionLength = tweets.statuses[i].entities.user_mentions.length;
           for(var h=0; h<userMentionLength; ++h) {
             dbQueries.push(

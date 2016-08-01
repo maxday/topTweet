@@ -21,6 +21,7 @@ GRANT ALL PRIVILEGES ON DATABASE toptweets to maxd;
 ALTER TABLE twitter_user OWNER TO maxd;
 ALTER TABLE twitter_hashtag OWNER TO maxd;
 ALTER TABLE twitter_mention OWNER TO maxd;
+ALTER TABLE twitter_url OWNER TO maxd;
 
 
 execute sql
