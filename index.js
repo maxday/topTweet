@@ -70,6 +70,32 @@ app.get('/go/:max_id_str?', function(request, response) {
         for (var i = 0; i < length; ++i) {
           ids.push(tweets.statuses[i].id);
 
+
+          var hashtagLength = tweets.statuses[i].entities.hashtags.length;
+
+          for(var h=0; h<hashtagLength; ++h) {
+            dbQueries.push(
+              this.one('SELECT insertHashtagNoDuplicate($1, $2, $3)',
+              [
+                tweets.statuses[i].id,
+                tweets.statuses[i].entities.hashtags[h].text,
+                tweets.statuses[i].created_at
+              ])
+            )
+          }
+
+          var userMentionLength = tweets.statuses[i].entities.user_mentions.length;
+          for(var h=0; h<userMentionLength; ++h) {
+            dbQueries.push(
+              this.one('SELECT insertMentionNoDuplicate($1, $2, $3)',
+              [
+                tweets.statuses[i].id,
+                tweets.statuses[i].entities.user_mentions[h].screen_name,
+                tweets.statuses[i].created_at
+              ])
+            )
+          }
+
           dbQueries.push(
            this.one('SELECT insertOrDetectDupliate($1, $2, $3, $4, $5, $6, $7, $8)',
              [
