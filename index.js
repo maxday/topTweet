@@ -9,7 +9,7 @@ var sleep = require('sleep');
 
 var port = process.env.PORT || 8080;
 
-var connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/topTweets';
+var connectionString = process.env.DATABASE_URL || 'postgres://maxd:maxd@localhost:5432/topTweets';
 
 var app = express();
 

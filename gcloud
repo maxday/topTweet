@@ -2,5 +2,14 @@ cloud console cmd
 
 
 sudo apt-get update
+sudo apt install nodejs-legacy -y
 sudo apt-get install postgresql postgresql-contrib -y
 sudo apt install npm -y
+
+
+sudo su -
+sudo -i -u postgres
+psql
+create user maxd with password 'maxd';
+create database topTweets;
+GRANT ALL PRIVILEGES ON DATABASE topTweets to maxd;
