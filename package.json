@@ -9,6 +9,8 @@
     "body-parser": "^1.15.2",
     "ejs": "2.5.1",
     "express": "^4.9.8",
+    "forever": "^0.15.2",
+    "forever-monitor": "^1.7.0",
     "pg": "^6.0.3",
     "pg-promise": "^5.2.6",
     "sleep": "^3.0.1",

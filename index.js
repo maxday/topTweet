@@ -57,14 +57,18 @@ app.get('/go/:max_id_str?', function(request, response) {
       var limit = res.headers['x-rate-limit-remaining'];
       console.log(limit);
       console.log(tweets.search_metadata);
+      console.log(tweets.search_metadata.next_results);
       var max_id_str = tweets.search_metadata.next_results.split("&")[0].split("=")[1];
       var dbQueries = [];
+      var ids = [];
       var db = pgp(connectionString);
       db.tx(function(t) {
         for (var i = 0; i < length; ++i) {
+          ids.push(tweets.statuses[i].id);
           dbQueries.push(
-           this.none('INSERT INTO twitter_user (screen_name, statuses_count, listed_count, followers_count, favourites_count, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+           this.none('INSERT INTO twitter_user (id, screen_name, statuses_count, listed_count, followers_count, favourites_count, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
              [
+               tweets.statuses[i].id,
                tweets.statuses[i].user.screen_name,
                tweets.statuses[i].user.statuses_count,
                tweets.statuses[i].user.listed_count,
@@ -83,6 +87,8 @@ app.get('/go/:max_id_str?', function(request, response) {
       })
       .catch(function(error) {
         console.log("ERROR:", error);
+
+        response.send({success : true, hasAlreadyBeenFound : true, ids: ids});
       });
     }
     else {

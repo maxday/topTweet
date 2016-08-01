@@ -21,3 +21,7 @@ ALTER TABLE twitter_user OWNER TO maxd;
 ALTER TABLE user_pk OWNER TO maxd;
 
 execute sql
+
+
+su maxd
+psql -d toptweets

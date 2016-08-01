@@ -1,9 +1,7 @@
 DROP TABLE twitter_user;
-DROP SEQUENCE user_pk;
-CREATE SEQUENCE user_pk;
 
 CREATE TABLE "twitter_user" (
-  "pk_id" int PRIMARY KEY default nextval('user_pk'),
+  "id" BIGINT PRIMARY KEY,
   "screen_name" varchar(255) NOT NULL,
   "statuses_count" integer NOT NULL,
   "listed_count" integer NOT NULL,
