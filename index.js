@@ -58,6 +58,10 @@ app.get('/go/:max_id_str?', function(request, response) {
       console.log(limit);
       console.log(tweets.search_metadata);
       console.log(tweets.search_metadata.next_results);
+      if(maxId && !tweets.search_metadata.next_results) {
+        response.send({success : true, noNext : true});
+        return;
+      }
       var max_id_str = tweets.search_metadata.next_results.split("&")[0].split("=")[1];
       var dbQueries = [];
       var ids = [];
@@ -65,8 +69,9 @@ app.get('/go/:max_id_str?', function(request, response) {
       db.tx(function(t) {
         for (var i = 0; i < length; ++i) {
           ids.push(tweets.statuses[i].id);
+
           dbQueries.push(
-           this.none('INSERT INTO twitter_user (id, screen_name, statuses_count, listed_count, followers_count, favourites_count, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+           this.one('SELECT insertOrDetectDupliate($1, $2, $3, $4, $5, $6, $7, $8)',
              [
                tweets.statuses[i].id,
                tweets.statuses[i].user.screen_name,
@@ -74,32 +79,44 @@ app.get('/go/:max_id_str?', function(request, response) {
                tweets.statuses[i].user.listed_count,
                tweets.statuses[i].user.followers_count,
                tweets.statuses[i].user.favourites_count,
-               tweets.statuses[i].created_at
+               tweets.statuses[i].created_at,
+               tweets.statuses[i].text
            ])
           )
         }
        return this.batch(dbQueries);
       })
-      .then(function(data) {
+      .then(function(result) {
         console.log("OK");
-        sleep.sleep(6);
-        response.redirect("/go/" + max_id_str);
+        console.log(result);
+        var shouldStop = false;
+        var resultLength = result.length;
+        for(var j=0; j<resultLength; ++j) {
+          if(result[j].insertordetectdupliate === 1) {
+            shouldStop = true;
+            break;
+          }
+        }
+        if(shouldStop) {
+          response.send({success : true, hasAlreadyBeenFound : true});
+        }
+        else {
+          response.redirect("/go/" + max_id_str);
+        }
+
       })
       .catch(function(error) {
         console.log("ERROR:", error);
-
         response.send({success : true, hasAlreadyBeenFound : true, ids: ids});
       });
     }
     else {
       console.log("error while fetching tweets");
+      response.send({success : false});
     }
   });
 });
 
-function function2() {
-  console.log("wait");
-}
 
 
 

@@ -8,6 +8,7 @@ sudo apt install npm -y
 
 
 sudo su -
+npm install -g forever
 sudo -i -u postgres
 psql
 create user maxd with password 'maxd';
@@ -18,7 +19,7 @@ create database toptweets;
 
 GRANT ALL PRIVILEGES ON DATABASE toptweets to maxd;
 ALTER TABLE twitter_user OWNER TO maxd;
-ALTER TABLE user_pk OWNER TO maxd;
+ALTER TABLE insertOrDetectDupliate OWNER TO maxd;
 
 execute sql
 
