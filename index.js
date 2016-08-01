@@ -79,7 +79,7 @@ app.get('/go/:max_id_str?', function(request, response) {
       .then(function(data) {
         console.log("OK");
         sleep.sleep(6);
-        response.redirect("/go" + max_id_str);
+        response.redirect("/go/" + max_id_str);
       })
       .catch(function(error) {
         console.log("ERROR:", error);
