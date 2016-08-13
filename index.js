@@ -1,18 +1,13 @@
 var express     = require("express");
-var pgp = require('pg-promise')();
-var pg = require('pg');
 var ejs         = require('ejs');
-var fs         = require('fs');
 var sleep = require('sleep');
-
-
 
 var port = process.env.PORT || 8080;
 
-var connectionString = process.env.DATABASE_URL || 'postgres://maxd:maxd@localhost:5432/toptweets';
-
 var app = express();
 
+var MongoClient = require('mongodb').MongoClient;
+var assert = require('assert');
 
 var Twitter = require('twitter');
 
@@ -45,123 +40,78 @@ app.get('/go/:max_id_str?', function(request, response) {
   console.log(params);
   console.log("connected");
 
+
   client.get('search/tweets', params, function(error, tweets, res) {
     if (!error) {
-      fs.writeFile("/tmp/test" + params.max_id + ".json", JSON.stringify(tweets), function(err) {
-        if (err) {
-          return console.log(err);
-        }
-        console.log("The file was saved!");
-      });
+
       var length = tweets.statuses.length;
       var limit = res.headers['x-rate-limit-remaining'];
-      console.log(limit);
-      console.log(tweets.search_metadata);
-      console.log(tweets.search_metadata.next_results);
+
       if(maxId && !tweets.search_metadata.next_results) {
         response.send({success : true, noNext : true});
         return;
       }
       var max_id_str = tweets.search_metadata.next_results.split("&")[0].split("=")[1];
-      var dbQueries = [];
-      var ids = [];
-      var db = pgp(connectionString);
-      db.tx(function(t) {
-        for (var i = 0; i < length; ++i) {
-          ids.push(tweets.statuses[i].id);
 
 
-          var hashtagLength = tweets.statuses[i].entities.hashtags.length;
-
-          for(var h=0; h<hashtagLength; ++h) {
-            dbQueries.push(
-              this.one('SELECT insertHashtagNoDuplicate($1, $2, $3)',
-              [
-                tweets.statuses[i].id,
-                tweets.statuses[i].entities.hashtags[h].text,
-                tweets.statuses[i].created_at
-              ])
-            )
-          }
-
-          var urlLength = tweets.statuses[i].entities.urls.length;
-          for(var h=0; h<urlLength; ++h) {
-            var url = tweets.statuses[i].entities.urls[h].expanded_url;
-            if(!url) {
-              url = tweets.statuses[i].entities.urls[h].url;
-            }
-
-            dbQueries.push(
-              this.one('SELECT insertUrlNoDuplicate($1, $2, $3)',
-              [
-                tweets.statuses[i].id,
-                url,
-                tweets.statuses[i].created_at
-              ])
-            )
-          }
-
-          var userMentionLength = tweets.statuses[i].entities.user_mentions.length;
-          for(var h=0; h<userMentionLength; ++h) {
-            dbQueries.push(
-              this.one('SELECT insertMentionNoDuplicate($1, $2, $3)',
-              [
-                tweets.statuses[i].id,
-                tweets.statuses[i].entities.user_mentions[h].screen_name,
-                tweets.statuses[i].created_at
-              ])
-            )
-          }
-
-          dbQueries.push(
-           this.one('SELECT insertOrDetectDupliate($1, $2, $3, $4, $5, $6, $7, $8)',
-             [
-               tweets.statuses[i].id,
-               tweets.statuses[i].user.screen_name,
-               tweets.statuses[i].user.statuses_count,
-               tweets.statuses[i].user.listed_count,
-               tweets.statuses[i].user.followers_count,
-               tweets.statuses[i].user.favourites_count,
-               tweets.statuses[i].created_at,
-               tweets.statuses[i].text
-           ])
-          )
-        }
-       return this.batch(dbQueries);
-      })
-      .then(function(result) {
-        console.log("OK");
-        console.log(result);
-        var shouldStop = false;
-        var resultLength = result.length;
-        for(var j=0; j<resultLength; ++j) {
-          if(result[j].insertordetectdupliate === 1) {
-            shouldStop = true;
-            break;
-          }
-        }
-        if(shouldStop) {
-          response.send({success : true, hasAlreadyBeenFound : true});
-        }
-        else {
-          response.redirect("/go/" + max_id_str);
-        }
-
-      })
-      .catch(function(error) {
-        console.log("ERROR:", error);
-        response.send({success : true, hasAlreadyBeenFound : true, ids: ids});
+      var url = 'mongodb://localhost:27017/twitter';
+      // Use connect method to connect to the Server
+      MongoClient.connect(url, function(err, db) {
+        assert.equal(null, err);
+        console.log("Connected correctly to server");
+        checkIfExists(response, db, tweets.statuses, max_id_str, insertOrSkip);
       });
     }
+
     else {
       console.log("error while fetching tweets");
       response.send({success : false});
     }
   });
+
 });
 
 
-
-
-
 app.listen(port);
+
+
+function insertOrSkip(response, db, tweetArray, max_id_str, shouldContinue) {
+  console.log("after callback" + shouldContinue);
+  var collection = db.collection('tweets');
+  collection.insert(
+    tweetArray,
+    function(err, result) {
+      console.log(err);
+      assert.equal(err, null);
+      console.log(result);
+      console.log(shouldContinue);
+      console.log(result.result.n);
+      if(shouldContinue) {
+        response.redirect("/go/" + max_id_str);
+      }
+      else {
+        response.send({success : true, noNext : true});
+      }
+  });
+  db.close();
+}
+
+function listofIds(tweetArray) {
+  var ids = [];
+  var length = tweetArray.length;
+  for(var i=0; i<length; ++i) {
+    ids.push(tweetArray[i].id);
+  }
+  return ids;
+}
+
+var checkIfExists = function(response, db, tweetArray, max_id_str, callback) {
+  var ids = listofIds(tweetArray);
+  var collection = db.collection('tweets');
+  collection.remove(
+    {id : { $in : ids}},
+    function(err, result) {
+      assert.equal(err, null);
+      callback(response, db, tweetArray, max_id_str, result.result.n > 0);
+  });
+}
